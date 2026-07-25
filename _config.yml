@@ -1,0 +1,7 @@
+theme: jekyll-theme-cayman
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag
+encoding: UTF-8
+title: LuxImage
+description: Ultra-high-resolution image library for Delphi / FireMonkey
