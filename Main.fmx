@@ -1,0 +1,174 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'LuxImage Viewer'
+  ClientHeight = 660
+  ClientWidth = 850
+  Position = ScreenCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnMouseWheel = FormMouseWheel
+  DesignerMasterStyle = 0
+  object Panel1: TPanel
+    Align = Right
+    Margins.Left = -10.00000000000000000
+    Position.X = 650.00000000000000000
+    Size.Width = 200.00000000000000000
+    Size.Height = 660.00000000000000000
+    Size.PlatformDefault = False
+    StyleLookup = 'pushpanel'
+    TabOrder = 0
+    object ButtonOpen: TButton
+      Position.X = 12.00000000000000000
+      Position.Y = 12.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = #38283#12367'...'
+      OnClick = ButtonOpenClick
+    end
+    object ButtonSave: TButton
+      Position.X = 12.00000000000000000
+      Position.Y = 50.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = #20445#23384'...'
+      OnClick = ButtonSaveClick
+    end
+    object LabelFmt: TLabel
+      Position.X = 12.00000000000000000
+      Position.Y = 98.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 20.00000000000000000
+      Size.PlatformDefault = False
+      Text = #30011#32032#24418#24335
+      TabOrder = 2
+    end
+    object ComboFormat: TComboBox
+      Items.Strings = (
+        'UInt08'
+        'UInt16'
+        'SFlo16'
+        'SFlo32')
+      Position.X = 12.00000000000000000
+      Position.Y = 118.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+    end
+    object ButtonFit: TButton
+      Position.X = 12.00000000000000000
+      Position.Y = 174.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = #20840#20307#34920#31034
+      OnClick = ButtonFitClick
+    end
+    object Button11: TButton
+      Position.X = 12.00000000000000000
+      Position.Y = 212.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = #31561#20493' ( 1 : 1 )'
+      OnClick = Button11Click
+    end
+    object LabelGamma: TLabel
+      Position.X = 12.00000000000000000
+      Position.Y = 260.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 20.00000000000000000
+      Size.PlatformDefault = False
+      Text = #12460#12531#12510
+      TabOrder = 6
+    end
+    object TrackGamma: TTrackBar
+      CanParentFocus = True
+      Max = 40.00000000000000000
+      Min = 5.00000000000000000
+      Orientation = Horizontal
+      Position.X = 12.00000000000000000
+      Position.Y = 280.00000000000000000
+      Size.Width = 130.00000000000000000
+      Size.Height = 19.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 7
+      Value = 10.00000000000000000
+      OnChange = TrackGammaChange
+    end
+    object LabelGammaV: TLabel
+      Position.X = 148.00000000000000000
+      Position.Y = 282.00000000000000000
+      Size.Width = 40.00000000000000000
+      Size.Height = 20.00000000000000000
+      Size.PlatformDefault = False
+      Text = '1.0'
+      TabOrder = 8
+    end
+    object CheckTone: TCheckBox
+      Position.X = 12.00000000000000000
+      Position.Y = 316.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 24.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 9
+      Text = #12488#12540#12531#12510#12483#12503
+      OnChange = CheckToneChange
+    end
+    object ProgressBar1: TProgressBar
+      Orientation = Horizontal
+      Position.X = 12.00000000000000000
+      Position.Y = 356.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 16.00000000000000000
+      Size.PlatformDefault = False
+      Visible = False
+    end
+    object LabelInfo: TLabel
+      StyledSettings = [Family, Style, FontColor]
+      Position.X = 12.00000000000000000
+      Position.Y = 388.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 200.00000000000000000
+      Size.PlatformDefault = False
+      TextSettings.VertAlign = Leading
+      TabOrder = 11
+    end
+  end
+  inline Viewer: TLuxImageViewer
+    Align = Client
+    Margins.Left = 10.00000000000000000
+    Margins.Top = 10.00000000000000000
+    Margins.Right = 10.00000000000000000
+    Margins.Bottom = 10.00000000000000000
+    Size.Width = 640.00000000000000000
+    Size.Height = 640.00000000000000000
+    Size.PlatformDefault = False
+  end
+  object OpenDialog1: TOpenDialog
+    Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    Left = 40
+    Top = 80
+  end
+  object SaveDialog1: TSaveDialog
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofPathMustExist, ofEnableSizing]
+    Left = 112
+    Top = 80
+  end
+  object Timer1: TTimer
+    Interval = 200
+    OnTimer = Timer1Timer
+    Left = 184
+    Top = 80
+  end
+end
