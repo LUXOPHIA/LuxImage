@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](ja/README.md)
 
-LuxImage is a demo application of `LUX.Data.Image`, an ultra-high-resolution image library for Delphi / FireMonkey. Because `TLuxImage` keeps every pixel in CPU memory as 256 × 256 tiles with a built-in mip pyramid, image size is not bounded by the GPU texture limit: it is unlimited as far as RAM allows.
+LuxImage is a demo application of `LUX.Data.Image`, an ultra-high-resolution image library for Delphi / FireMonkey. Because `TLuxImage` keeps every pixel in CPU memory as 256 × 256 tiles with a built-in mip pyramid, image size is not bounded by the GPU texture limit: it is unlimited as far as RAM allows. The application opens PNG / JPEG files, and renders a Mandelbrot set of up to 65,536² pixels on all cores while showing the blocks as they finish.
 
 ![](--------/_SCREENSHOT/LuxImage.png)
 
@@ -16,7 +16,8 @@ FireMonkey's `TBitmap` shares its storage with the GPU and therefore inherits th
 
 Main features demonstrated by this application:
 
-- **No GPU size limit.** Pixels live in CPU memory, in 256 × 256 tiles (`LUXIMAGE_TILE = 256`), each tile a separate heap block.
+- **No GPU size limit.** Pixels live in CPU memory, in 256 × 256 tiles (`LUXIMAGE_TILE = 256`), each tile a separate heap block. Every tile of every level is allocated by `SetSize`; an image that does not fit in free physical memory is refused there and then with `EOutOfMemory`.
+- **Parallel rendering with live display.** `TLuxImageWorker` cuts the image into 64 × 64 blocks and hands them one at a time to a thread per logical processor; each finished block is reported with `TileChanged`, and the viewer — which validates its tile cache against per-tile stamps and updates only the footprints of changed tiles in the pyramid — shows it within a frame. The Mandelbrot set is the demo's stand-in for ray tracing: pixels inside the set run to the iteration limit while pixels outside escape in a few steps, so per-block cost varies by orders of magnitude and only dynamic block assignment keeps the threads balanced.
 - **Four pixel formats**, each mapping one-to-one onto a native Skia color type, so tiles reach the GPU without any pixel-format conversion:
 
   | Class | Pixel record | Bytes / pixel | Skia color type | Default display gamma |
@@ -27,7 +28,7 @@ Main features demonstrated by this application:
   | `TLuxImageSFlo32` | `TSingleRGBA` | 16 | `RGBAF32` | 2.2 |
 
   Integer formats are taken to hold display-encoded (sRGB) values, so their default gamma is 1.0; floating-point formats are taken to hold linear values, so their default gamma is 2.2 and tone mapping is enabled by default. Alpha is stored straight (not premultiplied).
-- **Built-in mip pyramid** [2][3], built on demand and in parallel on load, so a fully zoomed-out view costs no more than a zoomed-in one, however large the image.
+- **Built-in mip pyramid** [2][3], allocated with the image and rebuilt incrementally — a changed tile costs a third of a tile to propagate, a loaded file a third of the image, both in parallel — so a fully zoomed-out view costs no more than a zoomed-in one, however large the image.
 - **Asynchronous file I/O** — loading and saving run on a worker thread (`TTask`) with per-row progress reporting and completion events delivered to the main thread through `TThread.Queue`, so the window stays responsive however large the file. PNG (implemented directly on `System.ZLib`, all bit depths / color types / `tRNS` / Adam7) and JPEG (via the Skia codec) are supported both ways.
 - **GPU tone mapping and gamma correction** as an SkSL runtime color filter [1][4], so changing the display settings costs nothing and does not invalidate the tile cache.
 
@@ -53,9 +54,24 @@ Level 0 is the original $W \times H$ image; each subsequent level halves both di
 \tag{2}
 ```
 
-i.e. the pyramid adds roughly 33 % to the memory of the base image [3].
+i.e. the pyramid adds roughly 33 % to the memory of the base image [3], and `SetSize` allocates all of it up front.
 
-### 2.3 Display gamma
+### 2.3 Incremental pyramid update
+
+Every level-0 tile carries a dirty flag, and every tile of every level a stamp that advances when its content changes. A thread that finishes writing a tile calls `TileChanged`, two atomic operations and no lock. Before each frame the viewer calls `UpdateLevels`, which rebuilds only the *footprint* of each dirty tile in the levels above — a square of side $256 / 2^{l}$ in level $l$, computed solely from the same tile's footprint one level down — so the chains of different tiles are independent up to level 8 and run in parallel. The work per changed tile is
+
+```math
+\sum_{l=1}^{8} \frac{1}{4^{l}} \;\approx\; \frac{1}{3}
+\tag{2'}
+```
+
+of a tile, however large the image; a full load marks every tile dirty and goes through the same path.
+
+### 2.4 Dynamic block assignment
+
+`TLuxImageWorker` numbers the 64 × 64 blocks in raster order and hands them to $N$ threads through one shared atomic counter, one block per fetch. With no static partition, the imbalance at the end of a run is at most one block regardless of how per-pixel cost is distributed — the property a ray tracer needs. Blocks never cross a tile and are disjoint, so no lock is taken on the pixel store; the worker throttles `Notify` and `OnProgress` to about 30 Hz.
+
+### 2.5 Display gamma
 
 Gamma correction is applied per channel on the GPU:
 
@@ -66,7 +82,7 @@ out \;=\; in^{\,1/\gamma}
 
 with $\gamma$ set by the `ガンマ` slider (default 1.0 for integer formats, 2.2 for floating-point ones).
 
-### 2.4 Tone mapping
+### 2.6 Tone mapping
 
 Tone mapping is the extended Reinhard operator [1], applied per RGB channel to the un-premultiplied color $L$ with white point $W$ (property `White`, default 1):
 
@@ -82,11 +98,12 @@ For $W \to \infty$ this reduces to the simple Reinhard curve $L_{out} = L / (1 +
 ```
 ■ Ownership
 
-・TForm1 (Main.pas)                       ･･･ UI: format combo, gamma, progress
+・TForm1 (Main.pas)                       ･･･ UI: format combo, gamma, render size, progress
   ┣・TLuxImage (abstract)                ･･･ owns
+  ┣・TLuxImageWorker                     ･･･ owns; renders the Mandelbrot set into the image
   ┗・TLuxImageViewer :TFrame             ･･･ Image (LUX.Data.Image.Viewer.pas)
 
-■ Class hierarchy — pixel formats    (storage: 256×256 tiles + mip pyramid)
+■ Class hierarchy — pixel formats    (storage: 256×256 tiles + mip pyramid, all allocated by SetSize)
 
 ・TLuxImage (abstract)
   ┣・TLuxImageUInt08
@@ -94,25 +111,29 @@ For $W \to \infty$ this reduces to the simple Reinhard curve $L_{out} = L / (1 +
   ┣・TLuxImageSFlo16
   ┗・TLuxImageSFlo32
 
-■ Change notification
+■ Parallel rendering and change tracking
 
-・TLuxImage
-  ┗・OnChange
-     ┗・TLuxImageViewer
+・TLuxImageWorker
+  ┗・N threads, one 64×64 block per atomic fetch
+     ┗・TForm1.Mandelbrot( ThreadI, X,Y,W,H )   ･･･ SetRow per row of the block
+        ┗・TLuxImage.TileChanged( TX,TY )        ･･･ Dirty := 1, Stamp++  (atomic, no lock)
+           ┗・TLuxImage.Notify  ( ≤ 30 Hz )      ･･･ OnChange → TLuxImageViewer.Redraw
+              ┗・OnProgress ( ≤ 30 Hz ), OnFinished
 
 ■ Per-frame draw pipeline
 
 ・TLuxImageViewer
   ┗・per frame
-     ┗・1. pick level l with eq. (1), NeedLevel( l )
-        ┗・2. enumerate visible tiles (≈ 54 for a 1920×1080 window)
-           ┗・3. TileImage(): gather 1-px apron, wrap as ISkImage
-              ┣・cache in TDictionary<TTileKey,TTileImg> (CACHE_MAX 512, LRU)
-              ┗・4. ACanvas.DrawImageRect per tile
-                 ┣・ISkRuntimeEffect color filter (tone map + gamma, SkSL)
-                 ┗・ISkCanvas: FMX Skia canvas
-                    ┣・Vulkan GPU backend when available
-                    ┗・falls back to an intermediate raster TBitmap otherwise
+     ┗・1. UpdateLevels: footprints of dirty tiles into levels 1…, in parallel
+        ┗・2. pick level l with eq. (1)
+           ┗・3. enumerate visible tiles (≈ 54 for a 1920×1080 window)
+              ┗・4. TileImage(): validate by stamps of tile + 8 neighbours, else gather 1-px apron, wrap as ISkImage
+                 ┣・cache in TDictionary<TTileKey,TTileImg> (CACHE_MAX 512, LRU)
+                 ┗・5. ACanvas.DrawImageRect per tile
+                    ┣・ISkRuntimeEffect color filter (tone map + gamma, SkSL)
+                    ┗・ISkCanvas: FMX Skia canvas
+                       ┣・Vulkan GPU backend when available
+                       ┗・falls back to an intermediate raster TBitmap otherwise
 
 ■ Asynchronous file I/O
 
@@ -120,11 +141,11 @@ For $W \to \infty$ this reduces to the simple Reinhard curve $L_{out} = L / (1 +
   ┗・LoadFromFileAsync / SaveToFileAsync ･･･ (LUX.Data.Image.Files.pas)
      ┗・TTask worker
         ┣・decode/encode PNG (System.ZLib) or JPEG (Skia codec)
-        ┣・build the whole mip pyramid in parallel
+        ┣・build the whole mip pyramid in parallel ( UpdateLevels with every tile dirty )
         ┗・OnProgress / OnLoaded / OnSaved queued to the main thread
 ```
 
-The viewer draws nothing while `Busy` is set, which is what allows the worker to write pixels without any locking. Cached tile images carry a one-pixel apron gathered from the neighbouring tiles, so linear filtering at a tile boundary reads real neighbouring pixels and no seams appear.
+The viewer draws nothing while `Busy` is set, because a load begins with `SetSize`, which replaces the tile structure; a render, by contrast, writes into tiles that already exist, so the viewer keeps drawing throughout and only ever reads a tile after its dirty flag has been taken down. Cached tile images carry a one-pixel apron gathered from the neighbouring tiles, so linear filtering at a tile boundary reads real neighbouring pixels and no seams appear.
 
 ```
 ・LuxImage/
@@ -137,18 +158,19 @@ The viewer draws nothing while `Busy` is set, which is what allows the worker to
   ┃     ┣・Color/                       ･･･ pixel types (TByteRGBA, …)
   ┃     ┣・D1/Half/                     ･･･ THalf, the half-precision scalar
   ┃     ┗・Data/Image/
-  ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage: tiles & pyramid
+  ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage: tiles & pyramid, change tracking
   ┃        ┣・LUX.Data.Image.Files.pas  ･･･ PNG / JPEG read/write, async I/O
+  ┃        ┣・LUX.Data.Image.Worker.pas ･･･ TLuxImageWorker: parallel block scheduler
   ┃        ┣・LUX.Data.Image.Viewer.pas ･･･ TLuxImageViewer
   ┃        ┗・README.md                 ･･･ full library documentation
   ┗・--------/_SCREENSHOT/LuxImage.png
 ```
 
-`LUX.Data.Image.pas` uses neither FireMonkey nor Skia; those dependencies are confined to the file and viewer units. Full library documentation: [`_LIBRARY/LUXOPHIA/LUX/Data/Image`](_LIBRARY/LUXOPHIA/LUX/Data/Image/README.md).
+`LUX.Data.Image.pas` and `LUX.Data.Image.Worker.pas` use neither FireMonkey nor Skia; those dependencies are confined to the file and viewer units. Full library documentation: [`_LIBRARY/LUXOPHIA/LUX/Data/Image`](_LIBRARY/LUXOPHIA/LUX/Data/Image/README.md).
 
 ## 4. Usage
 
-The application opens with nothing loaded — pick an image with `開く…`. No image is bundled; anything sized up to tens of thousands of pixels square will show what the library is for.
+The application opens with nothing loaded — pick an image with `開く…`, or render one with `描画開始`. No image is bundled; anything sized up to tens of thousands of pixels square will show what the library is for.
 
 | Control | Action |
 |---|---|
@@ -156,13 +178,17 @@ The application opens with nothing loaded — pick an image with `開く…`. No
 | Left drag | Scroll |
 | `開く…` (Open) | Open a PNG / JPEG asynchronously into the selected pixel format |
 | `保存…` (Save) | Save as PNG / JPEG (quality 90) asynchronously |
-| `画素形式` (Pixel format) | Format the next-opened file is loaded into: `UInt08` / `UInt16` / `SFlo16` / `SFlo32` |
+| `画素形式` (Pixel format) | Format the next-opened or next-rendered image: `UInt08` / `UInt16` / `SFlo16` / `SFlo32` |
 | `全体表示` (Fit) | Fit the whole image to the window |
 | `等倍 ( 1 : 1 )` (1:1) | One image pixel per screen pixel |
 | `ガンマ` (Gamma) | Display gamma $\gamma$ of eq. (3); defaults per format |
 | `トーンマップ` (Tone map) | Reinhard tone mapping, eq. (4); on by default for floating-point formats |
+| `並列描画（マンデルブロ集合）` (Parallel render) | Side of the square image to render: 4,096 … 65,536 pixels |
+| `描画開始` / `中止` (Render / Cancel) | Allocate an image of that size in the selected format and render the Mandelbrot set on all cores; the view fills in block by block and can be zoomed and scrolled meanwhile. Pressing again cancels after the blocks in flight |
 
-The label at the bottom of the panel reports the image size, the pixel format, the current zoom, and which pyramid level is being drawn; load/save times are shown for a few seconds after each operation.
+The label at the bottom of the panel reports the image size, the pixel format, the current zoom, and which pyramid level is being drawn; load/save/render times are shown for a few seconds after each operation, and the percentage and elapsed time during a render.
+
+If the selected size does not fit in free physical memory the render is refused with a message before anything is allocated: 65,536² pixels take 16 GB in `UInt08` and 64 GB in `SFlo32`, plus a third for the pyramid.
 
 ## 5. Building
 
