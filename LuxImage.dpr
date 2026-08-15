@@ -13,6 +13,7 @@ uses
   LUX.Color.Half in '_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Half.pas',
   LUX.Data.Image in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.pas',
   LUX.Data.Image.Files in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.pas',
+  LUX.Data.Image.Worker in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Worker.pas',
   LUX.Data.Image.Viewer in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Viewer.pas' {LuxImageViewer: TFrame};
 
 {$R *.res}
