@@ -6,7 +6,7 @@ uses System.SysUtils, System.Types, System.UITypes, System.Classes, System.Varia
      System.Diagnostics,
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
      FMX.Controls.Presentation, FMX.ListBox, FMX.Layouts,
-     LUX, LUX.Color, LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Viewer;
+     LUX, LUX.Color, LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Worker, LUX.Data.Image.Viewer;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【 T Y P E 】
 
@@ -25,6 +25,9 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        TrackGamma  :TTrackBar;
        LabelGammaV :TLabel;
        CheckTone   :TCheckBox;
+       LabelRender :TLabel;
+       ComboSize   :TComboBox;
+       ButtonRender :TButton;
        LabelInfo   :TLabel;
        ProgressBar1 :TProgressBar;
        OpenDialog1 :TOpenDialog;
@@ -39,9 +42,11 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        procedure Button11Click( Sender:TObject );
        procedure TrackGammaChange( Sender:TObject );
        procedure CheckToneChange( Sender:TObject );
+       procedure ButtonRenderClick( Sender:TObject );
        procedure Timer1Timer( Sender:TObject );
      private
        _Image  :TLuxImage;
+       _Worker :TLuxImageWorker;   // 並列描画（マンデルブロ集合）
        _File   :String;
        _Watch  :TStopwatch;
        _Hold   :Int64;      // この時刻まで LabelInfo を上書きしない
@@ -49,11 +54,15 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        procedure ImageProgress( Sender_:TObject );
        procedure ImageLoaded( Sender_:TObject );
        procedure ImageSaved( Sender_:TObject );
+       procedure WorkerProgress( Sender_:TObject );
+       procedure WorkerFinished( Sender_:TObject );
        ///// M E T H O D
+       procedure NewImage;
        procedure LoadImage( const FileName_:String );
        procedure BeginBusy( const Text_:String );
        procedure EndBusy;
        procedure UpdateInfo;
+       procedure Mandelbrot( const ThreadI_,X_,Y_,W_,H_:Integer );
      public
      end;
 
@@ -75,8 +84,12 @@ uses System.Math;
 
 //////////////////////////////////////////////////////////////////// M E T H O D
 
-procedure TForm1.LoadImage( const FileName_:String );
+///// 選択中の画素形式で空の画像を作り直す（描画中の処理があれば止める）
+
+procedure TForm1.NewImage;
 begin
+     FreeAndNil( _Worker );  // 破棄は中止と完了待ちを兼ねる
+
      Viewer.Image := nil;
 
      FreeAndNil( _Image );
@@ -92,12 +105,17 @@ begin
      _Image.OnLoaded  .Add( ImageLoaded   );
      _Image.OnSaved   .Add( ImageSaved    );
 
-     _File := FileName_;
-
      Viewer.Image := _Image;
 
      TrackGamma.Value    := Viewer.Gamma * 10;
      CheckTone.IsChecked := Viewer.ToneMap;
+end;
+
+procedure TForm1.LoadImage( const FileName_:String );
+begin
+     NewImage;
+
+     _File := FileName_;
 
      BeginBusy( '読み込み中…' );
 
@@ -115,18 +133,91 @@ begin
 
      LabelInfo.Text := Text_;
 
-     ButtonOpen.Enabled  := False;
-     ButtonSave.Enabled  := False;
-     ComboFormat.Enabled := False;
+     ButtonOpen.Enabled   := False;
+     ButtonSave.Enabled   := False;
+     ComboFormat.Enabled  := False;
+     ComboSize.Enabled    := False;
 end;
 
 procedure TForm1.EndBusy;
 begin
      ProgressBar1.Visible := False;
 
-     ButtonOpen.Enabled  := True;
-     ButtonSave.Enabled  := True;
-     ComboFormat.Enabled := True;
+     ButtonOpen.Enabled   := True;
+     ButtonSave.Enabled   := True;
+     ComboFormat.Enabled  := True;
+     ComboSize.Enabled    := True;
+end;
+
+//------------------------------------------------------------------------------
+
+///// マンデルブロ集合の１ブロック。集合の内側は最大反復まで回り、外側は数回で脱出するので、
+///// 場所ごとの計算量が桁で違う（レイトレーシングと同じ性質）。
+
+procedure TForm1.Mandelbrot( const ThreadI_,X_,Y_,W_,H_:Integer );
+const
+      ITER_MAX = 2048;
+      X0 = -2.2;  X1 = +1.0;  // 実部の範囲
+      Y0 = -1.6;  Y1 = +1.6;  // 虚部の範囲
+var
+   Row      :TArray<TSingleRGBA>;
+   I, J, N  :Integer;
+   CX, CY   :Double;
+   ZX, ZY   :Double;
+   ZX2, ZY2 :Double;
+   S, T     :Double;
+   IsFloat  :Boolean;
+begin
+     SetLength( Row, W_ );
+
+     IsFloat := _Image.IsFloat;
+
+     for J := 0 to H_-1 do
+     begin
+          CY := Y0 + ( Y1 - Y0 ) * ( Y_ + J + 0.5 ) / _Image.Height;
+
+          for I := 0 to W_-1 do
+          begin
+               CX := X0 + ( X1 - X0 ) * ( X_ + I + 0.5 ) / _Image.Width;
+
+               ZX := 0;  ZY := 0;  ZX2 := 0;  ZY2 := 0;  N := 0;
+
+               while ( N < ITER_MAX ) and ( ZX2 + ZY2 < 256 ) do
+               begin
+                    ZY  := 2 * ZX * ZY + CY;
+                    ZX  := ZX2 - ZY2 + CX;
+                    ZX2 := ZX * ZX;
+                    ZY2 := ZY * ZY;
+
+                    Inc( N );
+               end;
+
+               if N >= ITER_MAX then Row[ I ] := TSingleRGBA.Create( 0, 0, 0, 1 )  // 集合の内側
+               else
+               begin
+                    S := N + 1 - Log2( Log2( ZX2 + ZY2 ) / 2 );  // 滑らかな反復回数
+
+                    T := Pi + 0.5 * Sqrt( S );
+
+                    with Row[ I ] do
+                    begin
+                         R := 0.5 + 0.5 * Cos( T + 0.0 );
+                         G := 0.5 + 0.5 * Cos( T + 1.0 );
+                         B := 0.5 + 0.5 * Cos( T + 2.0 );
+                         A := 1;
+
+                         if IsFloat then  // 浮動小数形式はリニアとみなして表示されるので、リニアへ戻しておく
+                         begin
+                              R := Power( R, 2.2 );
+                              G := Power( G, 2.2 );
+                              B := Power( B, 2.2 );
+                         end;
+                    end;
+               end;
+          end;
+
+          _Image.SetRow( 0, X_, Y_ + J, W_, @Row[ 0 ] );
+     end;
 end;
 
 //////////////////////////////////////////////////////////////////// E V E N T
@@ -158,11 +249,35 @@ begin
      _Hold := _Watch.ElapsedMilliseconds + 3000;
 end;
 
+procedure TForm1.WorkerProgress( Sender_:TObject );
+begin
+     ProgressBar1.Value := _Worker.Progress * 100;
+
+     LabelInfo.Text := Format( '描画中… %.1f %%' + sLineBreak + '%d ms',
+                               [ _Worker.Progress * 100, _Watch.ElapsedMilliseconds ] );
+end;
+
+procedure TForm1.WorkerFinished( Sender_:TObject );
+begin
+     EndBusy;
+
+     ButtonRender.Text := '描画開始';
+
+     if _Worker.Cancelled then LabelInfo.Text := Format( '%d × %d' + sLineBreak + '描画を中止 ( %.1f %% )',
+                                                         [ _Image.Width, _Image.Height, _Worker.Progress * 100 ] )
+                          else LabelInfo.Text := Format( '%d × %d' + sLineBreak + '描画 %d ms',
+                                                         [ _Image.Width, _Image.Height, _Watch.ElapsedMilliseconds ] );
+
+     _Hold := _Watch.ElapsedMilliseconds + 3000;
+end;
+
 procedure TForm1.UpdateInfo;
 var
    L :Integer;
 begin
      if not Assigned( _Image ) or _Image.Busy or ( _Image.Width < 1 ) then Exit;
+
+     if Assigned( _Worker ) and _Worker.Busy then Exit;  // 描画中は進捗を表示している
 
      if _Watch.IsRunning and ( _Watch.ElapsedMilliseconds < _Hold ) then Exit;  // 直後の結果表示を残す
 
@@ -175,7 +290,7 @@ begin
                                '倍率 %.4g' + sLineBreak +
                                '段 %d ( %d × %d )',
                                [ _Image.Width, _Image.Height,
-                                 Copy( _Image.ClassName, 11, 99 ),
+                                 Copy( _Image.ClassName, Length( 'TLuxImage' ) + 1, 99 ),
                                  Viewer.Scale, L,
                                  _Image.LevelWidth( L ), _Image.LevelHeight( L ) ] );
 end;
@@ -187,12 +302,15 @@ end;
 procedure TForm1.FormCreate( Sender:TObject );
 begin
      ComboFormat.ItemIndex := 0;
+     ComboSize  .ItemIndex := 2;
 
      Caption := Caption + '  －  ' + TCanvasManager.DefaultCanvas.ClassName;
 end;
 
 procedure TForm1.FormDestroy( Sender:TObject );
 begin
+     _Worker.Free;  // 描画中なら止めて待つ
+
      Viewer.Image := nil;
 
      _Image.Free;
@@ -247,6 +365,47 @@ end;
 procedure TForm1.CheckToneChange( Sender:TObject );
 begin
      Viewer.ToneMap := CheckTone.IsChecked;
+end;
+
+///// 描画開始／中止。選択中の画素形式・大きさで空の画像を確保し、マンデルブロ集合を並列に描く。
+///// 描画中もビューアは動く（完了したブロックから順に表示へ反映される）。
+
+procedure TForm1.ButtonRenderClick( Sender:TObject );
+var
+   N :Integer;
+begin
+     if Assigned( _Worker ) and _Worker.Busy then
+     begin
+          _Worker.Cancel;  Exit;
+     end;
+
+     N := StrToIntDef( ComboSize.Selected.Text, 4096 );
+
+     NewImage;
+
+     try
+          _Image.SetSize( N, N );  // 全段をここで確保する。足りなければ EOutOfMemory
+     except
+          on E:EOutOfMemory do
+          begin
+               ShowMessage( E.Message );  Exit;
+          end;
+     end;
+
+     _File := Format( 'Mandelbrot %d.png', [ N ] );
+
+     Viewer.FitToWindow;
+
+     _Worker := TLuxImageWorker.Create( _Image );
+
+     _Worker.OnProgress.Add( WorkerProgress );
+     _Worker.OnFinished.Add( WorkerFinished );
+
+     BeginBusy( '描画中…' );
+
+     ButtonRender.Text := '中止';
+
+     _Worker.Start( Mandelbrot );
 end;
 
 procedure TForm1.Timer1Timer( Sender:TObject );

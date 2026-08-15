@@ -111,6 +111,7 @@
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Half.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Worker.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Viewer.pas">
             <Form>LuxImageViewer</Form>
             <FormType>fmx</FormType>
