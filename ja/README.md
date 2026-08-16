@@ -160,7 +160,9 @@ L_{out} \;=\; \operatorname{clamp}\!\left( \frac{L \left( 1 + L / W^{2} \right)}
   ┃     ┣・D1/Half/                     ･･･ THalf（半精度スカラー）
   ┃     ┗・Data/Image/
   ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage：タイルと縮小段、変更の追跡
-  ┃        ┣・LUX.Data.Image.Files.pas  ･･･ PNG/JPEG の読み書き・非同期入出力
+  ┃        ┣・LUX.Data.Image.Files.pas      ･･･ TLuxImageFiler：形式の基底クラスと登録
+  ┃        ┣・LUX.Data.Image.Files.Png.pas  ･･･ TLuxImageFilerPng（ Alpha ・ Level ）
+  ┃        ┣・LUX.Data.Image.Files.Jpg.pas  ･･･ TLuxImageFilerJpg（ Quality ）
   ┃        ┣・LUX.Data.Image.Worker.pas ･･･ TLuxImageWorker：並列ブロックスケジューラ
   ┃        ┣・LUX.Data.Image.Viewer.pas ･･･ TLuxImageViewer
   ┃        ┗・README.md                 ･･･ ライブラリの詳細ドキュメント
@@ -178,7 +180,8 @@ L_{out} \;=\; \operatorname{clamp}\!\left( \frac{L \left( 1 + L / W^{2} \right)}
 | マウスホイール（手前へ） | カーソル位置を中心に拡大。ノッチ 4 段で倍率 2 倍 |
 | 左ドラッグ | スクロール |
 | `開く…` | PNG / JPEG を選択中の画素形式へ非同期に読み込む |
-| `保存…` | PNG / JPEG として非同期に保存（品質 90） |
+| `保存…` | 選んだ拡張子のファイラで非同期に保存する。PNG は選択中の圧縮率、JPEG は品質 90 |
+| `PNG 圧縮率` | `非圧縮（最速）` ・ `速さ優先` ・ `既定` ・ `小さ優先（最遅）`。PNG は可逆なので、変わるのはファイルの大きさと書き出し時間だけで、画素は変わらない |
 | `画素形式` | 次に開く、または次に描く画像の形式：`UInt08` / `UInt16` / `SFlo16` / `SFlo32` |
 | `全体表示` | 画像全体を窓に合わせる |
 | `等倍 ( 1 : 1 )` | 画像の 1 画素を画面の 1 画素で表示する |

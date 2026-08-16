@@ -160,7 +160,9 @@ The viewer draws nothing while `Busy` is set, because a load begins with `SetSiz
   ┃     ┣・D1/Half/                     ･･･ THalf, the half-precision scalar
   ┃     ┗・Data/Image/
   ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage: tiles & pyramid, change tracking
-  ┃        ┣・LUX.Data.Image.Files.pas  ･･･ PNG / JPEG read/write, async I/O
+  ┃        ┣・LUX.Data.Image.Files.pas      ･･･ TLuxImageFiler: format base class + registry
+  ┃        ┣・LUX.Data.Image.Files.Png.pas  ･･･ TLuxImageFilerPng  ( Alpha, Level )
+  ┃        ┣・LUX.Data.Image.Files.Jpg.pas  ･･･ TLuxImageFilerJpg  ( Quality )
   ┃        ┣・LUX.Data.Image.Worker.pas ･･･ TLuxImageWorker: parallel block scheduler
   ┃        ┣・LUX.Data.Image.Viewer.pas ･･･ TLuxImageViewer
   ┃        ┗・README.md                 ･･･ full library documentation
@@ -178,7 +180,8 @@ The application opens with nothing loaded — pick an image with `開く…`, or
 | Mouse wheel (towards you) | Zoom in around the cursor; four notches double the scale |
 | Left drag | Scroll |
 | `開く…` (Open) | Open a PNG / JPEG asynchronously into the selected pixel format |
-| `保存…` (Save) | Save as PNG / JPEG (quality 90) asynchronously |
+| `保存…` (Save) | Save asynchronously through the filer for the chosen extension — PNG at the selected compression level, JPEG at quality 90 |
+| `PNG 圧縮率` (PNG compression) | `非圧縮（最速）` / `速さ優先` / `既定` / `小さ優先（最遅）`. PNG is lossless, so this changes only file size and write time, never the pixels |
 | `画素形式` (Pixel format) | Format the next-opened or next-rendered image: `UInt08` / `UInt16` / `SFlo16` / `SFlo32` |
 | `全体表示` (Fit) | Fit the whole image to the window |
 | `等倍 ( 1 : 1 )` (1:1) | One image pixel per screen pixel |
