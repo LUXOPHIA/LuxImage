@@ -6,7 +6,9 @@ uses System.SysUtils, System.Types, System.UITypes, System.Classes, System.Varia
      System.Diagnostics,
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
      FMX.Controls.Presentation, FMX.ListBox, FMX.Layouts,
-     LUX, LUX.Color, LUX.Color.Space, LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Worker, LUX.Data.Image.Viewer;
+     LUX, LUX.Color, LUX.Color.Space,
+     LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Files.Png, LUX.Data.Image.Files.Jpg,
+     LUX.Data.Image.Worker, LUX.Data.Image.Viewer;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【 T Y P E 】
 
@@ -25,6 +27,8 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        TrackGamma  :TTrackBar;
        LabelGammaV :TLabel;
        CheckTone   :TCheckBox;
+       LabelLevel  :TLabel;
+       ComboLevel  :TComboBox;
        LabelSpace  :TLabel;
        ComboSpace  :TComboBox;
        LabelRender :TLabel;
@@ -116,15 +120,30 @@ begin
      CheckTone.IsChecked := Viewer.ToneMap;
 end;
 
+///// 読み込みは形式ごとの設定を持たないので、拡張子からファイラを選ぶだけでよい
+
 procedure TForm1.LoadImage( const FileName_:String );
+var
+   Filer :TLuxImageFiler;
 begin
-     NewImage;
+     Filer := TLuxImageFiler.CreateFor( FileName_ );
 
-     _File := FileName_;
+     if not Assigned( Filer ) then
+     begin
+          ShowMessage( '対応していない形式： ' + ExtractFileExt( FileName_ ) );  Exit;
+     end;
 
-     BeginBusy( '読み込み中…' );
+     try
+        NewImage;
 
-     _Image.LoadFromFileAsync( FileName_ );
+        _File := FileName_;
+
+        BeginBusy( '読み込み中…' );
+
+        Filer.LoadFromFileAsync( _Image, FileName_ );   // 設定は複製されるので、すぐ解放してよい
+     finally
+        Filer.Free;
+     end;
 end;
 
 //------------------------------------------------------------------------------
@@ -362,6 +381,7 @@ var
 begin
      ComboFormat.ItemIndex := 0;
      ComboSize  .ItemIndex := 2;
+     ComboLevel .ItemIndex := 2;   // plDefault
 
      ComboSpace.Items.Add( 'なし' );
      for S in TLuxColorSpaces.Presets do ComboSpace.Items.Add( S.Name );
@@ -388,24 +408,41 @@ end;
 
 procedure TForm1.ButtonOpenClick( Sender:TObject );
 begin
-     OpenDialog1.Filter := '画像 (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png|すべて (*.*)|*.*';
+     OpenDialog1.Filter := TLuxImageFiler.DialogFilter + '|すべて (*.*)|*.*';
 
      if OpenDialog1.Execute then LoadImage( OpenDialog1.FileName );
 end;
 
+///// 保存は形式ごとに設定が違うので、ファイラのインスタンスを作って設定してから渡す
+
 procedure TForm1.ButtonSaveClick( Sender:TObject );
+var
+   Filer :TLuxImageFiler;
 begin
      if not Assigned( _Image ) or _Image.Busy then Exit;
 
-     SaveDialog1.Filter     := 'PNG (*.png)|*.png|JPEG (*.jpg)|*.jpg';
+     SaveDialog1.Filter     := TLuxImageFiler.DialogFilter( False );
      SaveDialog1.DefaultExt := 'png';
      SaveDialog1.FileName   := ChangeFileExt( ExtractFileName( _File ), '.png' );
 
      if not SaveDialog1.Execute then Exit;
 
-     BeginBusy( '保存中…' );
+     Filer := TLuxImageFiler.CreateFor( SaveDialog1.FileName );
 
-     _Image.SaveToFileAsync( SaveDialog1.FileName, 90 );
+     if not Assigned( Filer ) then
+     begin
+          ShowMessage( '対応していない形式： ' + ExtractFileExt( SaveDialog1.FileName ) );  Exit;
+     end;
+
+     try
+        if Filer is TLuxImageFilerPng then TLuxImageFilerPng( Filer ).Level := TLuxPngLevel( ComboLevel.ItemIndex );
+
+        BeginBusy( '保存中…' );
+
+        Filer.SaveToFileAsync( _Image, SaveDialog1.FileName );
+     finally
+        Filer.Free;
+     end;
 end;
 
 procedure TForm1.ButtonFitClick( Sender:TObject );
