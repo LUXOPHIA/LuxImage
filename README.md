@@ -31,6 +31,7 @@ Main features demonstrated by this application:
 - **Built-in mip pyramid** [2][3], allocated with the image and rebuilt incrementally — a changed tile costs a third of a tile to propagate, a loaded file a third of the image, both in parallel — so a fully zoomed-out view costs no more than a zoomed-in one, however large the image.
 - **Asynchronous file I/O** — loading and saving run on a worker thread (`TTask`) with per-row progress reporting and completion events delivered to the main thread through `TThread.Queue`, so the window stays responsive however large the file. PNG (implemented directly on `System.ZLib`, all bit depths / color types / `tRNS` / Adam7) and JPEG (via the Skia codec) are supported both ways.
 - **GPU tone mapping and gamma correction** as an SkSL runtime color filter [1][4], so changing the display settings costs nothing and does not invalidate the tile cache.
+- **Colour management** through `LUX.Color.Space`: an image may carry a colour space (sRGB, Display P3, Adobe RGB, Rec.2020, ProPhoto RGB, ACEScg and their linear forms, or a custom one), which is embedded in PNG (`sRGB` / `iCCP`) and JPEG (APP2 ICC) on save and recovered on load. The viewer converts on the GPU — image transfer function → primaries matrix → display transfer function — to the ICC profile Windows assigns to the monitor the window is on, or to a space you set. Pixel values are never modified.
 
 ## 2. Technical Background
 
@@ -155,7 +156,7 @@ The viewer draws nothing while `Busy` is set, because a load begins with `SetSiz
   ┣・_LIBRARY/
   ┃  ┗・LUXOPHIA/LUX/                   ･･･ git subtree of LUXOPHIA/LUX
   ┃     ┣・LUX.pas                      ･･･ base declarations
-  ┃     ┣・Color/                       ･･･ pixel types (TByteRGBA, …)
+  ┃     ┣・Color/                       ･･･ pixel types (TByteRGBA, …), colour spaces (LUX.Color.Space)
   ┃     ┣・D1/Half/                     ･･･ THalf, the half-precision scalar
   ┃     ┗・Data/Image/
   ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage: tiles & pyramid, change tracking
@@ -183,6 +184,7 @@ The application opens with nothing loaded — pick an image with `開く…`, or
 | `等倍 ( 1 : 1 )` (1:1) | One image pixel per screen pixel |
 | `ガンマ` (Gamma) | Display gamma $\gamma$ of eq. (3); defaults per format |
 | `トーンマップ` (Tone map) | Reinhard tone mapping, eq. (4); on by default for floating-point formats |
+| `色空間` (Colour space) | The image's colour space — `なし` (none) or one of the ten presets, sRGB to ACEScg. A loaded file's embedded profile selects the matching entry (or adds its own); the choice is embedded when saving and used for a render. With a colour space the viewer converts to the monitor's profile on the GPU; the info label shows *image → display* |
 | `並列描画（マンデルブロ集合）` (Parallel render) | Side of the square image to render: 4,096 … 65,536 pixels |
 | `描画開始` / `中止` (Render / Cancel) | Allocate an image of that size in the selected format and render the Mandelbrot set on all cores; the view fills in block by block and can be zoomed and scrolled meanwhile. Pressing again cancels after the blocks in flight |
 
