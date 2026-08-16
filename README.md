@@ -40,11 +40,11 @@ Main features demonstrated by this application:
 The viewer draws from the pyramid level $l$ chosen from the zoom scale $s$ (screen pixels per image pixel) as
 
 ```math
-l \;=\; \operatorname{clamp}\!\left( \left\lceil \log_2 \frac{1}{s} \right\rceil,\; 0,\; N-1 \right)
+l \;=\; \operatorname{clamp}\!\left( \left\lfloor \log_2 \frac{1}{s} \right\rfloor,\; 0,\; N-1 \right)
 \tag{1}
 ```
 
-where $N$ is the number of levels. Within the chosen level the effective magnification is $s \cdot 2^{l} \in [1, 2)$: minification never occurs inside a level, so minification aliasing cannot arise by construction [2]. At $s \geq 1$ sampling is nearest neighbour (pixels show as squares past 1:1), below it linear.
+where $N$ is the number of levels. Within the chosen level the effective scale is $s \cdot 2^{l} \in (\tfrac{1}{2}, 1]$: a level is never magnified, and the remaining minification of at most 2 is left to the GPU, which draws every tile as a mip-mapped texture with trilinear sampling and so blends the level continuously with the next coarser one [2] — sharp at every zoom, with neither magnification blur nor minification aliasing. At $s \geq 1$ sampling is nearest neighbour (pixels show as squares past 1:1).
 
 ### 2.2 Memory cost of the pyramid
 
