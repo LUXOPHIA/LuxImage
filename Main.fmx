@@ -65,7 +65,7 @@ object Form1: TForm1
     end
     object ButtonFit: TButton
       Position.X = 12.00000000000000000
-      Position.Y = 174.00000000000000000
+      Position.Y = 160.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -75,7 +75,7 @@ object Form1: TForm1
     end
     object Button11: TButton
       Position.X = 12.00000000000000000
-      Position.Y = 212.00000000000000000
+      Position.Y = 198.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -85,7 +85,7 @@ object Form1: TForm1
     end
     object LabelGamma: TLabel
       Position.X = 12.00000000000000000
-      Position.Y = 260.00000000000000000
+      Position.Y = 242.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 20.00000000000000000
       Size.PlatformDefault = False
@@ -98,7 +98,7 @@ object Form1: TForm1
       Min = 5.00000000000000000
       Orientation = Horizontal
       Position.X = 12.00000000000000000
-      Position.Y = 280.00000000000000000
+      Position.Y = 262.00000000000000000
       Size.Width = 130.00000000000000000
       Size.Height = 19.00000000000000000
       Size.PlatformDefault = False
@@ -108,7 +108,7 @@ object Form1: TForm1
     end
     object LabelGammaV: TLabel
       Position.X = 148.00000000000000000
-      Position.Y = 282.00000000000000000
+      Position.Y = 264.00000000000000000
       Size.Width = 40.00000000000000000
       Size.Height = 20.00000000000000000
       Size.PlatformDefault = False
@@ -117,7 +117,7 @@ object Form1: TForm1
     end
     object CheckTone: TCheckBox
       Position.X = 12.00000000000000000
-      Position.Y = 316.00000000000000000
+      Position.Y = 296.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 24.00000000000000000
       Size.PlatformDefault = False
@@ -125,9 +125,31 @@ object Form1: TForm1
       Text = #12488#12540#12531#12510#12483#12503
       OnChange = CheckToneChange
     end
+    object LabelLevel: TLabel
+      Position.X = 12.00000000000000000
+      Position.Y = 326.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 20.00000000000000000
+      Size.PlatformDefault = False
+      Text = 'PNG '#22311#32302#29575
+      TabOrder = 16
+    end
+    object ComboLevel: TComboBox
+      Items.Strings = (
+        #38750#22311#32302#65288#26368#36895#65289
+        #36895#12373#20778#20808
+        #26082#23450
+        #23567#12373#20778#20808#65288#26368#36930#65289)
+      Position.X = 12.00000000000000000
+      Position.Y = 346.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 17
+    end
     object LabelSpace: TLabel
       Position.X = 12.00000000000000000
-      Position.Y = 350.00000000000000000
+      Position.Y = 386.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 20.00000000000000000
       Size.PlatformDefault = False
@@ -136,7 +158,7 @@ object Form1: TForm1
     end
     object ComboSpace: TComboBox
       Position.X = 12.00000000000000000
-      Position.Y = 370.00000000000000000
+      Position.Y = 406.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -145,7 +167,7 @@ object Form1: TForm1
     end
     object LabelRender: TLabel
       Position.X = 12.00000000000000000
-      Position.Y = 416.00000000000000000
+      Position.Y = 446.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 20.00000000000000000
       Size.PlatformDefault = False
@@ -160,7 +182,7 @@ object Form1: TForm1
         '32768'
         '65536')
       Position.X = 12.00000000000000000
-      Position.Y = 436.00000000000000000
+      Position.Y = 466.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -168,7 +190,7 @@ object Form1: TForm1
     end
     object ButtonRender: TButton
       Position.X = 12.00000000000000000
-      Position.Y = 474.00000000000000000
+      Position.Y = 504.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -179,7 +201,7 @@ object Form1: TForm1
     object ProgressBar1: TProgressBar
       Orientation = Horizontal
       Position.X = 12.00000000000000000
-      Position.Y = 522.00000000000000000
+      Position.Y = 548.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 16.00000000000000000
       Size.PlatformDefault = False
@@ -188,9 +210,9 @@ object Form1: TForm1
     object LabelInfo: TLabel
       StyledSettings = [Family, Style, FontColor]
       Position.X = 12.00000000000000000
-      Position.Y = 554.00000000000000000
+      Position.Y = 572.00000000000000000
       Size.Width = 176.00000000000000000
-      Size.Height = 100.00000000000000000
+      Size.Height = 80.00000000000000000
       Size.PlatformDefault = False
       TextSettings.VertAlign = Leading
       TabOrder = 13
