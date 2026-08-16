@@ -333,7 +333,7 @@ begin
 
      if _Watch.IsRunning and ( _Watch.ElapsedMilliseconds < _Hold ) then Exit;  // 直後の結果表示を残す
 
-     L := Max( 0, Ceil( -Log2( Viewer.Scale ) ) );
+     L := Max( 0, Floor( -Log2( Viewer.Scale ) ) );
      L := Min( L, _Image.LevelsN - 1 );
 
      if Assigned( _Image.ColorSpace ) then S := _Image.ColorSpace.Name + ' → ' + Viewer.ActiveColorSpace.Name  // 画像 → 表示
