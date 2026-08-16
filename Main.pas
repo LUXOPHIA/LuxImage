@@ -6,7 +6,7 @@ uses System.SysUtils, System.Types, System.UITypes, System.Classes, System.Varia
      System.Diagnostics,
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
      FMX.Controls.Presentation, FMX.ListBox, FMX.Layouts,
-     LUX, LUX.Color, LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Worker, LUX.Data.Image.Viewer;
+     LUX, LUX.Color, LUX.Color.Space, LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Worker, LUX.Data.Image.Viewer;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【 T Y P E 】
 
@@ -25,6 +25,8 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        TrackGamma  :TTrackBar;
        LabelGammaV :TLabel;
        CheckTone   :TCheckBox;
+       LabelSpace  :TLabel;
+       ComboSpace  :TComboBox;
        LabelRender :TLabel;
        ComboSize   :TComboBox;
        ButtonRender :TButton;
@@ -42,6 +44,7 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        procedure Button11Click( Sender:TObject );
        procedure TrackGammaChange( Sender:TObject );
        procedure CheckToneChange( Sender:TObject );
+       procedure ComboSpaceChange( Sender:TObject );
        procedure ButtonRenderClick( Sender:TObject );
        procedure Timer1Timer( Sender:TObject );
      private
@@ -59,6 +62,8 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        ///// M E T H O D
        procedure NewImage;
        procedure LoadImage( const FileName_:String );
+       function ComboColorSpace :TLuxColorSpace;             // ComboSpace の選択を色空間に（「なし」は nil ）
+       procedure ShowColorSpace( const Space_:TLuxColorSpace );  // 色空間を ComboSpace に映す
        procedure BeginBusy( const Text_:String );
        procedure EndBusy;
        procedure UpdateInfo;
@@ -120,6 +125,48 @@ begin
      BeginBusy( '読み込み中…' );
 
      _Image.LoadFromFileAsync( FileName_ );
+end;
+
+//------------------------------------------------------------------------------
+
+///// ComboSpace の項目：0 = なし、1〜 = TLuxColorSpaces.Presets の順。読み込んだファイルの色空間が
+///// プリセットに無いものなら、その名前を末尾に足して選ぶ。
+
+function TForm1.ComboColorSpace :TLuxColorSpace;
+var
+   I :Integer;
+begin
+     I := ComboSpace.ItemIndex;
+
+     if ( I >= 1 ) and ( I <= Length( TLuxColorSpaces.Presets ) ) then Result := TLuxColorSpaces.Presets[ I-1 ]
+     else
+     if ( I > Length( TLuxColorSpaces.Presets ) ) and Assigned( _Image ) then Result := _Image.ColorSpace  // 末尾に足した「その他」
+     else Result := nil;
+end;
+
+procedure TForm1.ShowColorSpace( const Space_:TLuxColorSpace );
+var
+   I :Integer;
+begin
+     ComboSpace.OnChange := nil;
+     try
+        while ComboSpace.Count > 1 + Length( TLuxColorSpaces.Presets ) do ComboSpace.Items.Delete( ComboSpace.Count-1 );
+
+        if not Assigned( Space_ ) then ComboSpace.ItemIndex := 0
+        else
+        begin
+             I := 0;
+             while ( I < Length( TLuxColorSpaces.Presets ) ) and ( TLuxColorSpaces.Presets[ I ] <> Space_ ) do Inc( I );
+
+             if I < Length( TLuxColorSpaces.Presets ) then ComboSpace.ItemIndex := I + 1
+             else
+             begin
+                  ComboSpace.Items.Add( Space_.Name );  ComboSpace.ItemIndex := ComboSpace.Count-1;
+             end;
+        end;
+     finally
+        ComboSpace.OnChange := ComboSpaceChange;
+     end;
 end;
 
 //------------------------------------------------------------------------------
@@ -231,6 +278,10 @@ procedure TForm1.ImageLoaded( Sender_:TObject );
 begin
      EndBusy;
 
+     ShowColorSpace( _Image.ColorSpace );  // ファイルから読めた色空間
+
+     TrackGamma.Value := Viewer.Gamma * 10;
+
      Viewer.FitToWindow;
 
      LabelInfo.Text := Format( '%d × %d' + sLineBreak + '読み込み %d ms',
@@ -274,6 +325,7 @@ end;
 procedure TForm1.UpdateInfo;
 var
    L :Integer;
+   S :String;
 begin
      if not Assigned( _Image ) or _Image.Busy or ( _Image.Width < 1 ) then Exit;
 
@@ -284,13 +336,18 @@ begin
      L := Max( 0, Ceil( -Log2( Viewer.Scale ) ) );
      L := Min( L, _Image.LevelsN - 1 );
 
+     if Assigned( _Image.ColorSpace ) then S := _Image.ColorSpace.Name + ' → ' + Viewer.ActiveColorSpace.Name  // 画像 → 表示
+                                      else S := '色管理なし';
+
      LabelInfo.Text := Format( '%d × %d'  + sLineBreak +
+                               '%s'       + sLineBreak +
                                '%s'       + sLineBreak +
                                ''         + sLineBreak +
                                '倍率 %.4g' + sLineBreak +
                                '段 %d ( %d × %d )',
                                [ _Image.Width, _Image.Height,
                                  Copy( _Image.ClassName, Length( 'TLuxImage' ) + 1, 99 ),
+                                 S,
                                  Viewer.Scale, L,
                                  _Image.LevelWidth( L ), _Image.LevelHeight( L ) ] );
 end;
@@ -300,9 +357,15 @@ end;
 //////////////////////////////////////////////////////////////////// M E T H O D
 
 procedure TForm1.FormCreate( Sender:TObject );
+var
+   S :TLuxColorSpace;
 begin
      ComboFormat.ItemIndex := 0;
      ComboSize  .ItemIndex := 2;
+
+     ComboSpace.Items.Add( 'なし' );
+     for S in TLuxColorSpaces.Presets do ComboSpace.Items.Add( S.Name );
+     ComboSpace.ItemIndex := 0;
 
      Caption := Caption + '  －  ' + TCanvasManager.DefaultCanvas.ClassName;
 end;
@@ -367,6 +430,17 @@ begin
      Viewer.ToneMap := CheckTone.IsChecked;
 end;
 
+///// 画像に色空間を割り当てる（ Photoshop の「プロファイルの指定」に相当。画素値は変えない ）
+
+procedure TForm1.ComboSpaceChange( Sender:TObject );
+begin
+     if not Assigned( _Image ) then Exit;
+
+     _Image.ColorSpace := ComboColorSpace;
+
+     TrackGamma.Value := Viewer.Gamma * 10;  // 色管理の有無で表示ガンマの既定値が変わる
+end;
+
 ///// 描画開始／中止。選択中の画素形式・大きさで空の画像を確保し、マンデルブロ集合を並列に描く。
 ///// 描画中もビューアは動く（完了したブロックから順に表示へ反映される）。
 
@@ -393,6 +467,10 @@ begin
      end;
 
      _File := Format( 'Mandelbrot %d.png', [ N ] );
+
+     _Image.ColorSpace := ComboColorSpace;  // 選択中の色空間で描く（保存時に埋め込まれる）
+
+     TrackGamma.Value := Viewer.Gamma * 10;
 
      Viewer.FitToWindow;
 
