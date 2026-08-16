@@ -125,9 +125,27 @@ object Form1: TForm1
       Text = #12488#12540#12531#12510#12483#12503
       OnChange = CheckToneChange
     end
+    object LabelSpace: TLabel
+      Position.X = 12.00000000000000000
+      Position.Y = 350.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 20.00000000000000000
+      Size.PlatformDefault = False
+      Text = #33394#31354#38291
+      TabOrder = 14
+    end
+    object ComboSpace: TComboBox
+      Position.X = 12.00000000000000000
+      Position.Y = 370.00000000000000000
+      Size.Width = 176.00000000000000000
+      Size.Height = 32.00000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 15
+      OnChange = ComboSpaceChange
+    end
     object LabelRender: TLabel
       Position.X = 12.00000000000000000
-      Position.Y = 356.00000000000000000
+      Position.Y = 416.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 20.00000000000000000
       Size.PlatformDefault = False
@@ -142,7 +160,7 @@ object Form1: TForm1
         '32768'
         '65536')
       Position.X = 12.00000000000000000
-      Position.Y = 376.00000000000000000
+      Position.Y = 436.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -150,7 +168,7 @@ object Form1: TForm1
     end
     object ButtonRender: TButton
       Position.X = 12.00000000000000000
-      Position.Y = 414.00000000000000000
+      Position.Y = 474.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 32.00000000000000000
       Size.PlatformDefault = False
@@ -161,7 +179,7 @@ object Form1: TForm1
     object ProgressBar1: TProgressBar
       Orientation = Horizontal
       Position.X = 12.00000000000000000
-      Position.Y = 462.00000000000000000
+      Position.Y = 522.00000000000000000
       Size.Width = 176.00000000000000000
       Size.Height = 16.00000000000000000
       Size.PlatformDefault = False
@@ -170,9 +188,9 @@ object Form1: TForm1
     object LabelInfo: TLabel
       StyledSettings = [Family, Style, FontColor]
       Position.X = 12.00000000000000000
-      Position.Y = 494.00000000000000000
+      Position.Y = 554.00000000000000000
       Size.Width = 176.00000000000000000
-      Size.Height = 150.00000000000000000
+      Size.Height = 100.00000000000000000
       Size.PlatformDefault = False
       TextSettings.VertAlign = Leading
       TabOrder = 13

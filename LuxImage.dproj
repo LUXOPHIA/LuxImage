@@ -107,8 +107,14 @@
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\D1\Half\LUX.D1.Half.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\D1\Half\LUX.D1.Half.DIff.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.D1.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.D2.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.D2x2.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.D3.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.D3x3.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Half.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Space.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Worker.pas"/>
