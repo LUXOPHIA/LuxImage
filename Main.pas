@@ -7,7 +7,8 @@ uses System.SysUtils, System.Types, System.UITypes, System.Classes, System.Varia
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
      FMX.Controls.Presentation, FMX.ListBox, FMX.Layouts,
      LUX, LUX.Color, LUX.Color.Space,
-     LUX.Data.Image, LUX.Data.Image.Files, LUX.Data.Image.Files.Png, LUX.Data.Image.Files.Jpg,
+     LUX.Data.Codec.Image, LUX.Data.Codec.Image.Png, LUX.Data.Codec.Image.Jpg, LUX.Data.Codec.Image.Hdr,
+     LUX.Data.Image, LUX.Data.Image.Codec,
      LUX.Data.Image.Worker, LUX.Data.Image.Viewer;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【 T Y P E 】
@@ -120,30 +121,22 @@ begin
      CheckTone.IsChecked := Viewer.ToneMap;
 end;
 
-///// 読み込みは形式ごとの設定を持たないので、拡張子からファイラを選ぶだけでよい
+///// 読み込みは、ファイルの中身から形式が選ばれる（拡張子には依らない）
 
 procedure TForm1.LoadImage( const FileName_:String );
-var
-   Filer :TLuxImageFiler;
 begin
-     Filer := TLuxImageFiler.CreateFor( FileName_ );
-
-     if not Assigned( Filer ) then
+     if not Assigned( TLuxImageFiler.CodecOf( FileName_ ) ) then
      begin
-          ShowMessage( '対応していない形式： ' + ExtractFileExt( FileName_ ) );  Exit;
+          ShowMessage( '対応していない形式： ' + ExtractFileName( FileName_ ) );  Exit;
      end;
 
-     try
-        NewImage;
+     NewImage;
 
-        _File := FileName_;
+     _File := FileName_;
 
-        BeginBusy( '読み込み中…' );
+     BeginBusy( '読み込み中…' );
 
-        Filer.LoadFromFileAsync( _Image, FileName_ );  // 設定は複製されるので、すぐ解放してよい
-     finally
-        Filer.Free;
-     end;
+     TLuxImageFiler.LoadFromFileAsync( _Image, FileName_ );
 end;
 
 //------------------------------------------------------------------------------
@@ -408,40 +401,40 @@ end;
 
 procedure TForm1.ButtonOpenClick( Sender:TObject );
 begin
-     OpenDialog1.Filter := TLuxImageFiler.DialogFilter + '|すべて (*.*)|*.*';
+     OpenDialog1.Filter := TImageCodec.DialogFilter( '画像' ) + '|すべて (*.*)|*.*';
 
      if OpenDialog1.Execute then LoadImage( OpenDialog1.FileName );
 end;
 
-///// 保存は形式ごとに設定が違うので、ファイラのインスタンスを作って設定してから渡す
+///// 保存は形式ごとに設定が違うので、コーデックのインスタンスを作って設定してから渡す
 
 procedure TForm1.ButtonSaveClick( Sender:TObject );
 var
-   Filer :TLuxImageFiler;
+   Codec :TImageCodec;
 begin
      if not Assigned( _Image ) or _Image.Busy then Exit;
 
-     SaveDialog1.Filter     := TLuxImageFiler.DialogFilter( False );
+     SaveDialog1.Filter     := TImageCodec.DialogFilter;
      SaveDialog1.DefaultExt := 'png';
      SaveDialog1.FileName   := ChangeFileExt( ExtractFileName( _File ), '.png' );
 
      if not SaveDialog1.Execute then Exit;
 
-     Filer := TLuxImageFiler.CreateFor( SaveDialog1.FileName );
+     Codec := TImageCodec.CreateFor( SaveDialog1.FileName );
 
-     if not Assigned( Filer ) then
+     if not Assigned( Codec ) then
      begin
           ShowMessage( '対応していない形式： ' + ExtractFileExt( SaveDialog1.FileName ) );  Exit;
      end;
 
      try
-        if Filer is TLuxImageFilerPng then TLuxImageFilerPng( Filer ).Level := TLuxPngLevel( ComboLevel.ItemIndex );
+        if Codec is TImageCodecPng then TImageCodecPng( Codec ).Level := TImagePngLevel( ComboLevel.ItemIndex );
 
         BeginBusy( '保存中…' );
 
-        Filer.SaveToFileAsync( _Image, SaveDialog1.FileName );
+        TLuxImageFiler.SaveToFileAsync( _Image, SaveDialog1.FileName, Codec );
      finally
-        Filer.Free;
+        Codec.Free;
      end;
 end;
 

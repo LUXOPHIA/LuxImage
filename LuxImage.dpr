@@ -17,10 +17,12 @@ uses
   LUX.Color in '_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.pas',
   LUX.Color.Half in '_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Half.pas',
   LUX.Color.Space in '_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Space.pas',
+  LUX.Data.Codec.Image in '_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.pas',
+  LUX.Data.Codec.Image.Png in '_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.Png.pas',
+  LUX.Data.Codec.Image.Jpg in '_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.Jpg.pas',
+  LUX.Data.Codec.Image.Hdr in '_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.Hdr.pas',
   LUX.Data.Image in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.pas',
-  LUX.Data.Image.Files in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.pas',
-  LUX.Data.Image.Files.Png in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.Png.pas',
-  LUX.Data.Image.Files.Jpg in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.Jpg.pas',
+  LUX.Data.Image.Codec in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Codec.pas',
   LUX.Data.Image.Worker in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Worker.pas',
   LUX.Data.Image.Viewer in '_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Viewer.pas' {LuxImageViewer: TFrame};
 

@@ -115,10 +115,12 @@
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Half.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Color\LUX.Color.Space.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.Png.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.Jpg.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Codec\Image\LUX.Data.Codec.Image.Hdr.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.pas"/>
-        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.pas"/>
-        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.Png.pas"/>
-        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Files.Jpg.pas"/>
+        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Codec.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Worker.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\Data\Image\LUX.Data.Image.Viewer.pas">
             <Form>LuxImageViewer</Form>
