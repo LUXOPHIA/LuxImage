@@ -29,7 +29,7 @@ Main features demonstrated by this application:
 
   Integer formats are taken to hold display-encoded (sRGB) values, so their default gamma is 1.0; floating-point formats are taken to hold linear values, so their default gamma is 2.2 and tone mapping is enabled by default. Alpha is stored straight (not premultiplied).
 - **Built-in mip pyramid** [2][3], allocated with the image and rebuilt incrementally — a changed tile costs a third of a tile to propagate, a loaded file a third of the image, both in parallel — so a fully zoomed-out view costs no more than a zoomed-in one, however large the image.
-- **Asynchronous file I/O** — loading and saving run on a worker thread (`TTask`) with per-row progress reporting and completion events delivered to the main thread through `TThread.Queue`, so the window stays responsive however large the file. PNG (implemented directly on `System.ZLib`, all bit depths / color types / `tRNS` / Adam7) and JPEG (via the Skia codec) are supported both ways.
+- **Asynchronous file I/O** — loading and saving run on a worker thread (`TTask`) with progress reporting and completion events delivered to the main thread through `TThread.Queue`, so the window stays responsive however large the file. The formats are the codecs of `LUX.Data.Codec.Image`, which know nothing of `TLuxImage`: PNG (implemented directly on `System.ZLib`, all bit depths / color types / `tRNS` / Adam7), JPEG (via the Skia codec) and Radiance HDR (flat and run-length scanlines, all orientations) are supported both ways.
 - **GPU tone mapping and gamma correction** as an SkSL runtime color filter [1][4], so changing the display settings costs nothing and does not invalidate the tile cache.
 - **Colour management** through `LUX.Color.Space`: an image may carry a colour space (sRGB, Display P3, Adobe RGB, Rec.2020, ProPhoto RGB, ACEScg and their linear forms, or a custom one), which is embedded in PNG (`sRGB` / `iCCP`) and JPEG (APP2 ICC) on save and recovered on load. The viewer converts on the GPU — image transfer function → primaries matrix → display transfer function — to the ICC profile Windows assigns to the monitor the window is on, or to a space you set. Pixel values are never modified.
 
@@ -138,10 +138,10 @@ For $W \to \infty$ this reduces to the simple Reinhard curve $L_{out} = L / (1 +
 
 ■ Asynchronous file I/O
 
-・TLuxImage
-  ┗・LoadFromFileAsync / SaveToFileAsync ･･･ (LUX.Data.Image.Files.pas)
+・TLuxImageFiler                         ･･･ (LUX.Data.Image.Codec.pas)
+  ┗・LoadFromFileAsync / SaveToFileAsync ･･･ read by content, written by extension
      ┗・TTask worker
-        ┣・decode/encode PNG (System.ZLib) or JPEG (Skia codec)
+        ┣・decode/encode by the codec: PNG, JPEG or Radiance HDR
         ┣・build the whole mip pyramid in parallel ( UpdateLevels with every tile dirty )
         ┗・OnProgress / OnLoaded / OnSaved queued to the main thread
 ```
@@ -158,11 +158,10 @@ The viewer draws nothing while `Busy` is set, because a load begins with `SetSiz
   ┃     ┣・LUX.pas                      ･･･ base declarations
   ┃     ┣・Color/                       ･･･ pixel types (TByteRGBA, …), colour spaces (LUX.Color.Space)
   ┃     ┣・D1/Half/                     ･･･ THalf, the half-precision scalar
+  ┃     ┣・Data/Codec/Image/            ･･･ TImageCodec: PNG, JPEG, Radiance HDR
   ┃     ┗・Data/Image/
   ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage: tiles & pyramid, change tracking
-  ┃        ┣・LUX.Data.Image.Files.pas      ･･･ TLuxImageFiler: format base class + registry
-  ┃        ┣・LUX.Data.Image.Files.Png.pas  ･･･ TLuxImageFilerPng  ( Alpha, Level )
-  ┃        ┣・LUX.Data.Image.Files.Jpg.pas  ･･･ TLuxImageFilerJpg  ( Quality )
+  ┃        ┣・LUX.Data.Image.Codec.pas  ･･･ TLuxImageFiler: bridge to the codecs
   ┃        ┣・LUX.Data.Image.Worker.pas ･･･ TLuxImageWorker: parallel block scheduler
   ┃        ┣・LUX.Data.Image.Viewer.pas ･･･ TLuxImageViewer
   ┃        ┗・README.md                 ･･･ full library documentation
@@ -179,8 +178,8 @@ The application opens with nothing loaded — pick an image with `開く…`, or
 |---|---|
 | Mouse wheel (towards you) | Zoom in around the cursor; four notches double the scale |
 | Left drag | Scroll |
-| `開く…` (Open) | Open a PNG / JPEG asynchronously into the selected pixel format |
-| `保存…` (Save) | Save asynchronously through the filer for the chosen extension — PNG at the selected compression level, JPEG at quality 90 |
+| `開く…` (Open) | Open a PNG / JPEG / Radiance HDR file asynchronously into the selected pixel format. The format is recognised from the content of the file, not from its extension |
+| `保存…` (Save) | Save asynchronously through the codec for the chosen extension — PNG at the selected compression level, JPEG at quality 90, Radiance HDR ( `.hdr` ) |
 | `PNG 圧縮率` (PNG compression) | `非圧縮（最速）` / `速さ優先` / `既定` / `小さ優先（最遅）`. PNG is lossless, so this changes only file size and write time, never the pixels |
 | `画素形式` (Pixel format) | Format the next-opened or next-rendered image: `UInt08` / `UInt16` / `SFlo16` / `SFlo32` |
 | `全体表示` (Fit) | Fit the whole image to the window |

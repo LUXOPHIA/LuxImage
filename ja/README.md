@@ -29,7 +29,7 @@ FireMonkey の `TBitmap` は GPU とデータを共有するため GPU のテク
 
   整数形式は表示エンコード済み（sRGB）の値を保持するものとして既定ガンマ 1.0、浮動小数形式はリニアな値を保持するものとして既定ガンマ 2.2 とし、トーンマッピングを既定で有効にする。アルファはストレート（非プリマルチプライ）で保持する。
 - **縮小ピラミッド内蔵** [2][3]。画像と共に確保され、差分で作り直される ── 変わったタイル 1 枚の反映はタイルの 3 分の 1、ファイルの読み込みは画像の 3 分の 1 の費用で、いずれも並列 ── ので、どれほど大きな画像でも全景表示は拡大表示と同じコストで描ける。
-- **非同期ファイル入出力** ―― 読み込みも保存もワーカースレッド（`TTask`）で走り、行単位の進捗通知と完了イベントは `TThread.Queue` でメインスレッドへ届く。そのためファイルがどれだけ大きくてもウィンドウは応答し続ける。PNG（`System.ZLib` 上に直接実装。全ビット深度・全カラータイプ・`tRNS`・Adam7 に対応）と JPEG（Skia コーデック経由）に両方向で対応。
+- **非同期ファイル入出力** ―― 読み込みも保存もワーカースレッド（`TTask`）で走り、進捗通知と完了イベントは `TThread.Queue` でメインスレッドへ届く。そのためファイルがどれだけ大きくてもウィンドウは応答し続ける。形式は、`TLuxImage` を知らない `LUX.Data.Codec.Image` のコーデックである。PNG（`System.ZLib` 上に直接実装。全ビット深度・全カラータイプ・`tRNS`・Adam7 に対応）・JPEG（Skia コーデック経由）・Radiance HDR（無圧縮と連長の走査線、全ての向き）に両方向で対応。
 - **GPU 上のトーンマッピングとガンマ補正**。SkSL のランタイムカラーフィルタとして実行される [1][4] ため、表示設定の変更はコストゼロで、タイルキャッシュも無効化しない。
 - **色管理**（`LUX.Color.Space`）。画像は色空間（sRGB ・ Display P3 ・ Adobe RGB ・ Rec.2020 ・ ProPhoto RGB ・ ACEScg とその線形版、あるいは自作）を持て、保存時に PNG（`sRGB` / `iCCP`）と JPEG（APP2 ICC）へ埋め込まれ、読み込み時に復元される。ビューアは GPU で ── 画像の伝達関数 → 原色の行列 → 表示の伝達関数 ── 窓の乗っているモニターに Windows が割り当てた ICC プロファイル、または指定した空間へ変換する。画素値は一切変えない。
 
@@ -138,10 +138,10 @@ L_{out} \;=\; \operatorname{clamp}\!\left( \frac{L \left( 1 + L / W^{2} \right)}
 
 ■ 非同期ファイル入出力
 
-・TLuxImage
-  ┗・LoadFromFileAsync / SaveToFileAsync ･･･ (LUX.Data.Image.Files.pas)
+・TLuxImageFiler                         ･･･ (LUX.Data.Image.Codec.pas)
+  ┗・LoadFromFileAsync / SaveToFileAsync ･･･ 読みは中身、書きは拡張子で形式を選ぶ
      ┗・TTask ワーカー
-        ┣・PNG（System.ZLib）／JPEG（Skia コーデック）の復号・符号化
+        ┣・コーデックによる復号・符号化：PNG ・ JPEG ・ Radiance HDR
         ┣・縮小ピラミッド全体の並列構築（全タイルを Dirty にした UpdateLevels）
         ┗・OnProgress / OnLoaded / OnSaved をメインスレッドへキュー
 ```
@@ -158,11 +158,10 @@ L_{out} \;=\; \operatorname{clamp}\!\left( \frac{L \left( 1 + L / W^{2} \right)}
   ┃     ┣・LUX.pas                      ･･･ 基本宣言
   ┃     ┣・Color/                       ･･･ 画素型（TByteRGBA など）、色空間（LUX.Color.Space）
   ┃     ┣・D1/Half/                     ･･･ THalf（半精度スカラー）
+  ┃     ┣・Data/Codec/Image/            ･･･ TImageCodec：PNG ・ JPEG ・ Radiance HDR
   ┃     ┗・Data/Image/
   ┃        ┣・LUX.Data.Image.pas        ･･･ TLuxImage：タイルと縮小段、変更の追跡
-  ┃        ┣・LUX.Data.Image.Files.pas      ･･･ TLuxImageFiler：形式の基底クラスと登録
-  ┃        ┣・LUX.Data.Image.Files.Png.pas  ･･･ TLuxImageFilerPng（ Alpha ・ Level ）
-  ┃        ┣・LUX.Data.Image.Files.Jpg.pas  ･･･ TLuxImageFilerJpg（ Quality ）
+  ┃        ┣・LUX.Data.Image.Codec.pas  ･･･ TLuxImageFiler：コーデックとの橋
   ┃        ┣・LUX.Data.Image.Worker.pas ･･･ TLuxImageWorker：並列ブロックスケジューラ
   ┃        ┣・LUX.Data.Image.Viewer.pas ･･･ TLuxImageViewer
   ┃        ┗・README.md                 ･･･ ライブラリの詳細ドキュメント
@@ -179,8 +178,8 @@ L_{out} \;=\; \operatorname{clamp}\!\left( \frac{L \left( 1 + L / W^{2} \right)}
 |---|---|
 | マウスホイール（手前へ） | カーソル位置を中心に拡大。ノッチ 4 段で倍率 2 倍 |
 | 左ドラッグ | スクロール |
-| `開く…` | PNG / JPEG を選択中の画素形式へ非同期に読み込む |
-| `保存…` | 選んだ拡張子のファイラで非同期に保存する。PNG は選択中の圧縮率、JPEG は品質 90 |
+| `開く…` | PNG / JPEG / Radiance HDR のファイルを選択中の画素形式へ非同期に読み込む。形式は、拡張子ではなく、ファイルの中身から見分ける |
+| `保存…` | 選んだ拡張子のコーデックで非同期に保存する。PNG は選択中の圧縮率、JPEG は品質 90、Radiance HDR は `.hdr` |
 | `PNG 圧縮率` | `非圧縮（最速）` ・ `速さ優先` ・ `既定` ・ `小さ優先（最遅）`。PNG は可逆なので、変わるのはファイルの大きさと書き出し時間だけで、画素は変わらない |
 | `画素形式` | 次に開く、または次に描く画像の形式：`UInt08` / `UInt16` / `SFlo16` / `SFlo32` |
 | `全体表示` | 画像全体を窓に合わせる |
