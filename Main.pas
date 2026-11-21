@@ -275,7 +275,7 @@ begin
                end;
           end;
 
-          _Image.SetRow( 0, X_, Y_ + J, W_, @Row[ 0 ] );
+          _Image.SetRow( 0, X_, Y_ + J, 1, W_, @Row[ 0 ] );
      end;
 end;
 
